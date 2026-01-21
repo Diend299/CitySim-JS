@@ -1,58 +1,107 @@
 class Agent {
-    // 让构造函数同时接收 坐标 和 父姓
-    constructor(r, c, fatherName = null) {
-        // 1. 计算坐标 (基于地图偏移量)
-        this.r = r; 
-        this.c = c;
-        // 注意：这里需要引用全局的 STATE 和 CONFIG，确保它们已加载
-        this.x = (window.STATE ? STATE.offsetX : 0) + c * CONFIG.tileSize + CONFIG.tileSize/2;
-        this.y = (window.STATE ? STATE.offsetY : 0) + r * CONFIG.tileSize + CONFIG.tileSize/2;
+    constructor() {
+        this.name = NameGen.get();
+        // 初始位置：随机出生在某个格子里
+        this.x = canvas.width/2; 
+        this.y = canvas.height/2;
+        this.target = null; // 目标 Building 对象
 
-        this.target = null;
-        
-        // 2. 属性初始化
-        this.gender = Math.random() > 0.5 ? 'male' : 'female';
-        
-        // 这里就是报错的地方，现在 fatherName 有定义了
-        this.name = NameGenerator.gen(this.gender, fatherName ? fatherName[0] : null);
-        
-        // 如果有父亲，说明是新生儿(0岁)；否则是初始移民(18-30岁)
-        this.age = fatherName ? 0 : 18 + Math.random() * 12;
-        
-        this.wealth = fatherName ? 0 : 500; // 初始资金
+        this.house = null;
         this.job = null;
-        this.home = null;
-        this.state = 'IDLE';
-        this.dead = false;
+        
+        this.state = 'IDLE'; // IDLE, MOVING, WORKING, HOME
+        this.timer = 0;
+        this.money = 0;
+        
+        this.gender = Math.random()>0.5 ? 'male':'female';
     }
 
-    // 找工作逻辑
-    findJob() {
-        if (this.job) return;
-        
-        // 遍历所有公司，找工资高且没满的
-        let bestCompany = null;
-        let maxSalary = -1;
+    update() {
+        this.think();
+        this.move();
+    }
 
-        for (let b of MapSystem.buildings) {
-            if (b.data.jobs && b.workers.length < b.data.jobs) {
-                if (b.data.salary > maxSalary) {
-                    maxSalary = b.data.salary;
-                    bestCompany = b;
-                }
+    think() {
+        if (this.target) return; // 在路上
+
+        // 1. 找房子
+        if (!this.house) {
+            let h = MapSystem.findSpot('house');
+            if (h) {
+                this.house = h;
+                h.people.push(this); // 占据名额
+                Logger.add('sys', `${this.name} 入住了 ${h.data.name}`);
             }
         }
 
-        if (bestCompany) {
-            this.job = bestCompany;
-            bestCompany.workers.push(this);
-            Logger.add('work', `${this.name} 入职了 ${bestCompany.data.name} (薪资:${maxSalary})`);
+        // 2. 找工作
+        if (!this.job) {
+            let c = MapSystem.findSpot('company');
+            if (c) {
+                this.job = c;
+                c.people.push(this);
+                Logger.add('money', `${this.name} 入职了 ${c.data.name}`);
+            }
+        }
+
+        // 3. 日常通勤
+        if (this.state === 'IDLE' || this.state === 'HOME') {
+            if (this.job) {
+                this.target = this.job;
+                this.state = 'MOVING_TO_WORK';
+            }
+        } else if (this.state === 'WORKING') {
+            this.timer++;
+            // 发工资 (每帧一点点)
+            if (this.timer % 100 === 0) {
+                this.money += this.job.data.salary;
+                STATE.money += 10; // 给政府交税
+            }
+
+            if (this.timer > 200) { // 下班
+                this.timer = 0;
+                if (this.house) {
+                    this.target = this.house;
+                    this.state = 'MOVING_TO_HOME';
+                } else {
+                    this.state = 'IDLE'; // 流浪
+                }
+            }
         }
     }
-    
-    // ... 移动和绘制逻辑需要加上 STATE.offsetX 的偏移量计算 ...
-}
 
-function spawnAgent(r, c) {
-    agents.push(new Agent(r, c));
+    move() {
+        if (!this.target) return;
+        
+        // 目标的屏幕坐标 (必须每一帧重新获取，因为地图可能会动)
+        let tx = this.target.x + CONFIG.tileSize/2;
+        let ty = this.target.y + CONFIG.tileSize/2;
+        
+        let dx = tx - this.x;
+        let dy = ty - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist < 4) {
+            // 到达
+            this.x = tx; this.y = ty;
+            if (this.state === 'MOVING_TO_WORK') this.state = 'WORKING';
+            if (this.state === 'MOVING_TO_HOME') this.state = 'HOME';
+            this.target = null;
+        } else {
+            // 移动
+            this.x += (dx/dist) * 2 * CONFIG.speed;
+            this.y += (dy/dist) * 2 * CONFIG.speed;
+        }
+    }
+
+    draw(ctx) {
+        if (this.state === 'WORKING' || this.state === 'HOME') return; // 进屋消失
+        
+        let img = this.gender==='male' ? ASSETS.man : ASSETS.woman;
+        if (img.complete) ctx.drawImage(img, this.x-10, this.y-10, 20, 20);
+        else {
+            ctx.fillStyle = this.gender==='male'?'blue':'red';
+            ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI*2); ctx.fill();
+        }
+    }
 }

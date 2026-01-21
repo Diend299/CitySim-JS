@@ -2,59 +2,44 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>最后一代：人口保卫战 (V0.3 OOP)</title>
+    <title>最后一代：人口保卫战 (V0.5 模拟经营版)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>🏙️ 最后一代：人口保卫战</h1>
-
-    <div class="controls">
-        <button id="btnReset">🔄 重置世界</button>
-        <button id="btnPause">⏯️ 暂停/继续</button>
-        <div class="slider-box">
-            <span>🚀 速度:</span>
-            <input type="range" id="speedSlider" min="1" max="10" value="2" step="1">
-            <span id="speedVal" class="highlight">2x</span>
+    <div class="top-bar">
+        <h1>🏙️ 城市模拟器</h1>
+        <div class="stats">
+            <span id="timeDisplay">第 1 年</span>
+            <span class="highlight">💰 资金: <span id="moneyDisplay">50000</span></span>
+            <span>👥 人口: <span id="popDisplay">0</span></span>
+            <span id="jobDisplay">💼 就业率: 0%</span>
         </div>
-        <div class="stat-box">时间: <span id="timeDisplay" class="highlight">2025年1月</span></div>
-        <div class="stat-box">人口: <span id="popDisplay" class="highlight">0</span></div>
+        <div class="controls">
+            <button id="btnExpand" class="btn-primary">✨ 扩建城市 (Lv.1)</button>
+            <button id="btnPause">⏯️ 暂停</button>
+            <input type="range" id="speedSlider" min="1" max="10" value="1">
+        </div>
     </div>
 
     <div class="main-layout">
-        <canvas id="gameCanvas" width="800" height="640"></canvas>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div class="log-panel">
-            <h3>📜 城市大事记</h3>
+            <h3>📜 城市日报</h3>
             <div id="gameLogList"></div>
         </div>
     </div>
-    <div class="build-panel">
-    <button onclick="setBuildMode('house')">🏠 建住宅 (5k)</button>
-    <button onclick="setBuildMode('company')">🏢 建公司 (1w)</button>
-    <button onclick="setBuildMode('school')">🏫 建学校 (2w)</button>
-    <span id="treasuryDisplay">财政: 100k</span>
-    </div>
-    <div class="build-menu">
-    <div class="category">基建</div>
-    <button onclick="setBuild('road')">道路 $100</button>
-    
-    <div class="category">住宅</div>
-    <button onclick="setBuild('house_s')">木屋(2人) $2k</button>
-    <button onclick="setBuild('house_l')">公寓(10人) $8k</button>
-    
-    <div class="category">商业</div>
-    <button onclick="setBuild('company_s')">作坊(4岗) $5k</button>
-    <button onclick="setBuild('company_l')">写字楼(20岗) $2w</button>
 
-    <div class="category">市政</div>
-    <button onclick="tryExpand()" class="btn-upgrade">✨ 扩建城市</button>
+    <!-- 底部建造菜单 -->
+    <div class="build-menu" id="buildMenu">
+        <!-- JS 会自动在这里生成按钮 -->
     </div>
 
-    <!-- 按顺序加载 JS 模块 -->
+    <!-- 模块加载 -->
     <script src="js/Config.js"></script>
     <script src="js/Utils.js"></script>
     <script src="js/Building.js"></script>
-    <script src="js/MapSystem.js"></script>
     <script src="js/Agent.js"></script>
+    <script src="js/MapSystem.js"></script>
     <script src="js/Main.js"></script>
 </body>
 </html>
